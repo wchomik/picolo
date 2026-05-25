@@ -35,6 +35,7 @@ type Config struct {
 	PIAgentImage string           `mapstructure:"pi_agent_image"`
 	TtydPort     int              `mapstructure:"ttyd_port"`
 	LlamaPort    int              `mapstructure:"llama_port"`
+	LastMode     string           `mapstructure:"last_mode"`
 }
 
 // GetConfig returns the config directory path (~/.picolo)
@@ -85,6 +86,7 @@ func LoadConfig() (*Config, error) {
 		PIAgentImage: viper.GetString("pi_agent_image"),
 		TtydPort:     viper.GetInt("ttyd_port"),
 		LlamaPort:    viper.GetInt("llama_port"),
+		LastMode:     viper.GetString("last_mode"),
 	}
 
 	return cfg, nil
@@ -108,6 +110,7 @@ func SaveConfig(cfg *Config) error {
 	viper.Set("pi_agent_image", cfg.PIAgentImage)
 	viper.Set("ttyd_port", cfg.TtydPort)
 	viper.Set("llama_port", cfg.LlamaPort)
+	viper.Set("last_mode", cfg.LastMode)
 
 	configPath := filepath.Join(configDir, ConfigName+"."+ConfigType)
 	return viper.WriteConfigAs(configPath)
@@ -126,4 +129,14 @@ func (c *Config) LlamaImage() string {
 // IsLlamaEnabled returns whether llama.cpp server should be started
 func (c *Config) IsLlamaEnabled() bool {
 	return !c.SkipLlama
+}
+
+// SaveLastMode writes only the last_mode field to config (fast, non-blocking)
+func SaveLastMode(mode string) {
+	configDir, err := GetConfigDir()
+	if err != nil {
+		return
+	}
+	viper.Set("last_mode", mode)
+	_ = viper.WriteConfigAs(filepath.Join(configDir, ConfigName+"."+ConfigType))
 }

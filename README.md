@@ -1,17 +1,17 @@
 # picolo
 
-Orchestrate a local, sandboxed Docker-based pi agent environment.
+**Pi** + **Co**ntainer + **Lo**cal — a quick, easy, and safe sandboxed environment to play with the pi coding agent.
 
-A standalone, portable Go executable that replaces the pi-local-sandbox Makefile with a clean CLI for managing llama.cpp servers and pi agent containers.
+A standalone, portable Go executable that spins up pi in Docker containers. Local AI is optional but pretty cool, and picolo makes it easy to set up.
 
 ## Overview
 
-Picolo manages two Docker services:
+Picolo gives you an isolated, reproducible environment to experiment with the pi coding agent. Everything runs in Docker containers on a private network:
 
-- **llama.cpp server** — serves local LLM models on a GPU via an OpenAI-compatible API
-- **pi-agent** — the pi coding agent, configured to use the local LLM endpoint
+- **pi-agent** — the pi coding agent, mounted to any directory you choose
+- **llama.cpp server** _(optional)_ — local LLM inference on your GPU, served via an OpenAI-compatible API
 
-Everything runs in Docker, making it easy to spin up a private coding assistant.
+No host pollution, no leftover files — just containers on a clean network.
 
 ## Installation
 
@@ -37,6 +37,15 @@ picolo chat ~/my-project
 # Serve the agent through a browser
 picolo serve ~/my-project
 
+# Check container status
+picolo status
+
+# Stop all containers
+picolo stop
+
+# Resume last session (chat or serve)
+picolo start
+
 # Update all containers to newest versions
 picolo update
 ```
@@ -48,6 +57,9 @@ picolo update
 | `picolo init` | Initialize environment (pull images, start llama server) |
 | `picolo init --env vulkan` | Initialize with Vulkan GPU backend |
 | `picolo init --skip-llama` | Skip local llama.cpp deployment |
+| `picolo start` | Start containers and resume last session (chat/serve) |
+| `picolo status` | Show status of all picolo containers |
+| `picolo stop` | Stop all running picolo containers |
 | `picolo update` | Update all containers to newest versions |
 | `picolo chat [dir]` | Start pi agent interactively in a terminal |
 | `picolo serve [dir]` | Start pi agent via ttyd (browser access) |
@@ -83,9 +95,13 @@ llama_port: 8080             # Llama.cpp API port
 ```
 ~/.picolo/
 ├── picolo.yaml              # Configuration file
-├── docker-compose.yaml      # Generated compose file
 └── pi/                      # Pi agent config directory
 ```
+
+## Docker Network
+
+Picolo creates a `picolo-net` Docker network for inter-container communication.
+Containers communicate by name (e.g., `http://picolo-llama-cpp:8080/v1`).
 
 ## Architecture
 
@@ -94,7 +110,8 @@ llama_port: 8080             # Llama.cpp API port
 │   llama-cpp server  │◄────────│     pi-agent           │
 │   (GPU, port 8080)  │  HTTP   │  (pi coding agent)     │
 │   ~/.models:/models │────────►│  PI_LLM_ENDPOINT       │
-└─────────────────────┘         │  http://llama-cpp:8080 │
+│   (optional)        │         │  http://picolo-llama-  │
+└─────────────────────┘         │      cpp:8080/v1       │
                                 │  HOST_PATH:/app        │
                                 │  PI_EXTENSIONS (env)   │
                                 └───────────┬────────────┘
@@ -108,10 +125,20 @@ llama_port: 8080             # Llama.cpp API port
 
 ## Requirements
 
-- Go 1.24+ (for building)
-- Docker & Docker Compose
-- GPU (for llama.cpp acceleration, optional with `--skip-llama`)
-- Local LLM models in `~/.models`
+### Software
+
+- **Docker** — picolo runs everything in containers (no Docker Compose needed)
+- **Go 1.24+** — only required if building from source
+
+### Hardware
+
+The pi-agent container runs on any machine. For local LLM inference (optional), typical hardware requirements for running GGUF models apply:
+
+- **GPU** — NVIDIA (CUDA), AMD (ROCm), or Apple Silicon (Metal) recommended
+- **RAM** — 8 GB minimum, 16 GB+ for larger models
+- **Storage** — depends on model size (4–20 GB typical)
+
+If you don't have suitable hardware, use `--skip-llama` and connect pi to any remote LLM endpoint.
 
 ## License
 

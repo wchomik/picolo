@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/wchomik/picolo/config"
 	"github.com/wchomik/picolo/docker"
 )
 
@@ -55,18 +56,14 @@ func runChat(args []string) error {
 		return fmt.Errorf("directory does not exist: %s", workDir)
 	}
 
-	// Ensure compose file exists
-	composePath := client.ComposeFile()
-	if _, err := os.Stat(composePath); os.IsNotExist(err) {
-		fmt.Println("  Compose file not found. Run 'picolo init' first.")
-		if err := client.GenerateComposeFile(); err != nil {
-			return fmt.Errorf("failed to generate compose file: %w", err)
-		}
+	// Ensure docker network exists
+	if err := client.EnsureNetwork(); err != nil {
+		return fmt.Errorf("failed to ensure docker network: %w", err)
 	}
 
 	// Start llama server if enabled
 	if cfg.IsLlamaEnabled() {
-		running, _ := client.IsContainerRunning("llama-cpp")
+		running, _ := client.IsContainerRunning(docker.LlamaContainer)
 		if !running {
 			fmt.Println("  Starting llama-cpp server...")
 			if err := client.StartLlama(); err != nil {
@@ -80,6 +77,7 @@ func runChat(args []string) error {
 		fmt.Printf("  Extensions: %s\n", cfg.ExtensionsString())
 	}
 
+	config.SaveLastMode("chat")
 	return client.RunChat(workDir)
 }
 

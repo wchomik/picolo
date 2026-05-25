@@ -22,9 +22,9 @@ var initCmd = &cobra.Command{
 	Short: "Initialize the picolo environment",
 	Long: `Initialize the picolo environment:
   - Create config directory (~/.picolo)
+  - Create Docker network for container communication
   - Pull all required Docker images
   - Start the llama.cpp server (unless --skip-llama)
-  - Generate docker-compose.yaml
 
 The environment parameter determines which GPU backend to use for llama.cpp.
 Supported values: cuda, vulkan, rocm, metal, cpu`,
@@ -86,12 +86,12 @@ func runInit() error {
 	fmt.Printf("  ✓ Pi config directory: %s\n", piConfigDir)
 	fmt.Printf("  ✓ Environment: %s\n", cfg.Env)
 
-	// Generate docker-compose file
+	// Create docker network
 	client := docker.New(cfg)
-	if err := client.GenerateComposeFile(); err != nil {
-		return fmt.Errorf("failed to generate docker-compose.yaml: %w", err)
+	if err := client.EnsureNetwork(); err != nil {
+		return fmt.Errorf("failed to create docker network: %w", err)
 	}
-	fmt.Printf("  ✓ Docker compose file: %s\n", client.ComposeFile())
+	fmt.Printf("  ✓ Docker network: %s\n", docker.NetworkName)
 
 	// Pull images
 	fmt.Println("\n📦 Pulling Docker images...")

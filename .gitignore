@@ -1,0 +1,7 @@
+# Built binaries
+picolo
+picolo-*
+
+# OS files
+.DS_Store
+Thumbs.db
